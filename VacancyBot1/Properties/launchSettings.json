@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "VacancyBot1": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:57233;http://localhost:57234"
+    }
+  }
+}
