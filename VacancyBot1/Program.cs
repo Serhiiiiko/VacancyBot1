@@ -54,11 +54,8 @@ public class Bot
     public async Task RunAsync()
     {
         var cts = new CancellationTokenSource();
-
-<<<<<<< HEAD
-=======
         // Start receiving updates
->>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
+
         _botClient.StartReceiving(
             _updateHandler,
             receiverOptions: null,

@@ -75,10 +75,7 @@ public class CandidateService
             case ApplicationStep.WorkExperience:
                 state.WorkExperience = message.Text;
 
-<<<<<<< HEAD
-=======
                 // Save candidate to database
->>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 var candidate = new Candidate
                 {
                     TelegramId = message.From.Id,
@@ -92,21 +89,14 @@ public class CandidateService
                 _dbContext.Candidates.Add(candidate);
                 await _dbContext.SaveChangesAsync();
 
-<<<<<<< HEAD
-=======
                 // Remove state
->>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 _candidateStates.TryRemove(message.From.Id, out _);
 
                 await _botClient.SendTextMessageAsync(
                     chatId: message.Chat.Id,
                     text: "Ваша заявка успішно надіслана!"
                 );
-
-<<<<<<< HEAD
-=======
                 // Optionally, return to main menu
->>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 break;
         }
     }
@@ -121,9 +111,9 @@ public class CandidateService
     {
         public int VacancyId { get; set; }
         public ApplicationStep Step { get; set; }
-        public string FullName { get; set; }
-        public string PhoneNumber { get; set; }
-        public string WorkExperience { get; set; }
+        public string FullName { get; set; } = default!;
+        public string PhoneNumber { get; set; } = default!;
+        public string WorkExperience { get; set; } = default!;
     }
 
     private enum ApplicationStep

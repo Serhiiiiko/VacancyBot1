@@ -71,16 +71,12 @@ public class VacancyService
             //        replyMarkup: keyboard
             //    );
             //}
-<<<<<<< HEAD
             await _botClient.SendTextMessageAsync(
                 chatId: chatId,
                  text: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                 replyMarkup: keyboard
             );
-=======
-
->>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
         }
         else
         {
