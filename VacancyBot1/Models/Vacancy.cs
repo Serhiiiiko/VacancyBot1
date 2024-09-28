@@ -13,7 +13,7 @@ public class Vacancy
 
     public string Requirements { get; set; } = default!;
 
-    public byte[]? Image { get; set; } = null;
+    public string? ImagePath { get; set; }
 
     public DateTime DateCreated { get; set; } = DateTime.UtcNow;
 }

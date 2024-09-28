@@ -74,8 +74,63 @@ public class CandidateService
 
             case ApplicationStep.WorkExperience:
                 state.WorkExperience = message.Text;
+                state.Step = ApplicationStep.CVFile;
+                await _botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: "Надішліть ваше резюме у форматі PDF або зображення (або введіть skip, щоб пропустити):"
+                );
+                break;
 
-                // Save candidate to database
+            case ApplicationStep.CVFile:
+                if (message.Document != null || message.Photo != null)
+                {
+                    string filePath = null;
+                    var directory = Path.Combine("wwwroot", "CandidateFiles");
+                    Directory.CreateDirectory(directory);
+
+                    if (message.Document != null)
+                    {
+                        var fileId = message.Document.FileId;
+                        var file = await _botClient.GetFileAsync(fileId);
+                        var extension = Path.GetExtension(message.Document.FileName);
+                        var fileName = $"{Guid.NewGuid()}{extension}";
+                        filePath = Path.Combine(directory, fileName);
+
+                        using (var stream = System.IO.File.OpenWrite(filePath))
+                        {
+                            await _botClient.DownloadFileAsync(file.FilePath, stream);
+                        }
+                    }
+                    else if (message.Photo != null)
+                    {
+                        var photo = message.Photo.OrderByDescending(p => p.FileSize).FirstOrDefault();
+                        var fileId = photo.FileId;
+                        var file = await _botClient.GetFileAsync(fileId);
+                        var fileName = $"{Guid.NewGuid()}.jpg";
+                        filePath = Path.Combine(directory, fileName);
+
+                        using (var stream = System.IO.File.OpenWrite(filePath))
+                        {
+                            await _botClient.DownloadFileAsync(file.FilePath, stream);
+                        }
+                    }
+
+                    state.CVFilePath = filePath;
+                }
+                else if (message.Text?.ToLower() == "skip")
+                {
+                    state.CVFilePath = null;
+                }
+                else
+                {
+                    await _botClient.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: "Надішліть резюме або введіть skip, щоб пропустити цей крок."
+                    );
+                    return;
+                }
+
+                // Збереження кандидата
                 var candidate = new Candidate
                 {
                     TelegramId = message.From.Id,
@@ -83,21 +138,21 @@ public class CandidateService
                     FullName = state.FullName,
                     PhoneNumber = state.PhoneNumber,
                     WorkExperience = state.WorkExperience,
+                    CVFilePath = state.CVFilePath,
                     VacancyId = state.VacancyId
                 };
 
                 _dbContext.Candidates.Add(candidate);
                 await _dbContext.SaveChangesAsync();
 
-                // Remove state
                 _candidateStates.TryRemove(message.From.Id, out _);
 
                 await _botClient.SendTextMessageAsync(
                     chatId: message.Chat.Id,
                     text: "Ваша заявка успішно надіслана!"
                 );
-                // Optionally, return to main menu
                 break;
+
         }
     }
 
@@ -114,12 +169,16 @@ public class CandidateService
         public string FullName { get; set; } = default!;
         public string PhoneNumber { get; set; } = default!;
         public string WorkExperience { get; set; } = default!;
+        public string? CVFilePath { get; set; }
+
     }
 
     private enum ApplicationStep
     {
         FullName,
         PhoneNumber,
-        WorkExperience
+        WorkExperience,
+        CVFile
     }
+
 }

@@ -104,7 +104,11 @@ namespace VacancyBot1.Handlers
                 await _adminService.HandleAdminCallbackQueryAsync(callbackQuery);
                 return;
             }
-
+            if (callbackQuery.Data == "back_to_main")
+            {
+                await _vacancyService.ShowVacanciesAsync(callbackQuery.Message.Chat.Id);
+                return;
+            }
             if (callbackQuery.Data.StartsWith("vacancy_"))
             {
                 int vacancyId = int.Parse(callbackQuery.Data.Split('_')[1]);

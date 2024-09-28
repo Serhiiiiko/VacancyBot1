@@ -143,14 +143,14 @@ namespace VacancyBot1.Services
             {
                 await _botClient.SendTextMessageAsync(
                     chatId: message.Chat.Id,
-                    text: "Наразі немає доступних вакансій для перегляду."
+                    text: "Наразі немає доступних вакансій."
                 );
                 return;
             }
 
             var buttons = vacancies.Select(v =>
-                InlineKeyboardButton.WithCallbackData(v.Title, $"deletevacancy_{v.Id}")
-            );
+                new[] { InlineKeyboardButton.WithCallbackData(v.Title, $"viewcandidates_{v.Id}") }
+            ).ToArray();
 
             var keyboard = new InlineKeyboardMarkup(buttons);
 
@@ -204,6 +204,15 @@ namespace VacancyBot1.Services
                     chatId: callbackQuery.Message.Chat.Id,
                     text: "Введіть нову назву вакансії:"
                 );
+            }
+            if (callbackQuery.Data.StartsWith("viewcandidates_"))
+            {
+                int vacancyId = int.Parse(callbackQuery.Data.Split('_')[1]);
+                state.Command = AdminCommand.ViewCandidates;
+                state.VacancyId = vacancyId;
+                _adminStates[callbackQuery.From.Id] = state;
+
+                await HandleViewCandidatesAsync(callbackQuery.Message, state);
             }
             else if (callbackQuery.Data.StartsWith("deletevacancy_"))
             {
@@ -263,18 +272,25 @@ namespace VacancyBot1.Services
                 case AdminStep.Image:
                     if (message.Type == Telegram.Bot.Types.Enums.MessageType.Photo)
                     {
-                        // Get the highest resolution photo
-                        var fileId = message.Photo.Last().FileId;
+                        var photo = message.Photo.OrderByDescending(p => p.FileSize).FirstOrDefault();
+                        var fileId = photo.FileId;
                         var file = await _botClient.GetFileAsync(fileId);
-                        using (var stream = new System.IO.MemoryStream())
+
+                        var directory = Path.Combine("wwwroot", "VacancyPhotos");
+                        Directory.CreateDirectory(directory);
+                        var fileName = $"{Guid.NewGuid()}.jpg";
+                        var filePath = Path.Combine(directory, fileName);
+
+                        using (var stream = System.IO.File.OpenWrite(filePath))
                         {
                             await _botClient.DownloadFileAsync(file.FilePath, stream);
-                            state.Image = stream.ToArray();
                         }
+
+                        state.ImagePath = filePath;
                     }
-                    else if (message.Text == "skip")
+                    else if (message.Text?.ToLower() == "skip")
                     {
-                        state.Image = null;
+                        state.ImagePath = null;
                     }
                     else
                     {
@@ -285,13 +301,13 @@ namespace VacancyBot1.Services
                         return;
                     }
 
-                    // Save vacancy to database
+                    // Збереження вакансії
                     var vacancy = new Vacancy
                     {
                         Title = state.Title,
                         Description = state.Description,
                         Requirements = state.Requirements,
-                        Image = state.Image
+                        ImagePath = state.ImagePath
                     };
 
                     _dbContext.Vacancies.Add(vacancy);
@@ -343,27 +359,32 @@ namespace VacancyBot1.Services
                     state.Step = AdminStep.Image;
                     await _botClient.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: "Надішліть нове зображення вакансії (або надішліть skip, щоб пропустити):"
+                        text: "Надішліть нове зображення вакансії (або введіть skip, щоб пропустити):"
                     );
                     break;
                 case AdminStep.Image:
                     if (message.Type == Telegram.Bot.Types.Enums.MessageType.Photo)
                     {
-                        var fileId = message.Photo.Last().FileId;
+                        var photo = message.Photo.OrderByDescending(p => p.FileSize).FirstOrDefault();
+                        var fileId = photo.FileId;
                         var file = await _botClient.GetFileAsync(fileId);
-                        using (var stream = new System.IO.MemoryStream())
+
+                        var directory = Path.Combine("wwwroot", "VacancyPhotos");
+                        Directory.CreateDirectory(directory);
+                        var fileName = $"{Guid.NewGuid()}.jpg";
+                        var filePath = Path.Combine(directory, fileName);
+
+                        using (var stream = System.IO.File.OpenWrite(filePath))
                         {
                             await _botClient.DownloadFileAsync(file.FilePath, stream);
-                            vacancy.Image = stream.ToArray();
                         }
+
+                        vacancy.ImagePath = filePath;
                     }
-                    else if (message.Text == "skip")
+                    else if (message.Text?.ToLower() == "skip")
                     {
-                        vacancy.Image = null;
-                        await _botClient.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: "ok без фото"
-                            );
+                        // Залишаємо поточне зображення без змін або встановлюємо в null
+                        vacancy.ImagePath = null;
                     }
                     else
                     {
@@ -388,8 +409,31 @@ namespace VacancyBot1.Services
 
         private async Task HandleViewCandidatesAsync(Message message, AdminState state)
         {
-            throw new NotImplementedException();
+            var candidates = _dbContext.Candidates
+                .Where(c => c.VacancyId == state.VacancyId)
+                .ToList();
+
+            if (!candidates.Any())
+            {
+                await _botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: "Немає кандидатів на цю вакансію."
+                );
+                return;
+            }
+
+            foreach (var candidate in candidates)
+            {
+                await _botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: $"Ім'я: {candidate.FullName}\n" +
+                          $"Телефон: {candidate.PhoneNumber}\n" +
+                          $"Досвід роботи: {candidate.WorkExperience}\n" +
+                          $"Telegram: @{candidate.TelegramUsername ?? "N/A"}"
+                );
+            }
         }
+
 
         private async Task HandleDeleteVacancyAsync(Message message, AdminState state)
         {
@@ -404,7 +448,7 @@ namespace VacancyBot1.Services
             public string Title { get; set; } = default!;
             public string Description { get; set; } = default!;
             public string Requirements { get; set; } = default!;
-            public byte[]? Image { get; set; } = null;
+            public string? ImagePath { get; set; }
         }
 
         private enum AdminCommand

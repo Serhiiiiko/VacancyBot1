@@ -1,7 +1,8 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
 using VacancyBot1.Data;
-
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types;
 
 namespace VacancyBot1.Services;
 
@@ -30,8 +31,8 @@ public class VacancyService
         }
 
         var buttons = vacancies.Select(v =>
-            InlineKeyboardButton.WithCallbackData(v.Title, $"vacancy_{v.Id}")
-        );
+            new[] { InlineKeyboardButton.WithCallbackData(v.Title, $"vacancy_{v.Id}") }
+        ).ToArray();
 
         var keyboard = new InlineKeyboardMarkup(buttons);
 
@@ -56,34 +57,35 @@ public class VacancyService
         }
 
         var applyButton = InlineKeyboardButton.WithCallbackData("Подати заявку", $"apply_{vacancy.Id}");
-        var keyboard = new InlineKeyboardMarkup(applyButton);
+        var backButton = InlineKeyboardButton.WithCallbackData("⬅️ Повернутися", "back_to_main");
 
-        if (vacancy.Image != null)
+        var keyboard = new InlineKeyboardMarkup(new[]
         {
-            //using (var stream = new System.IO.MemoryStream(vacancy.Image))
-            //{
-            //    var inputFile = new Telegram.Bot.Types.InputFiles.InputFile(stream, "vacancy.jpg");
-            //    await _botClient.SendPhotoAsync(
-            //        chatId: chatId,
-            //        photo: inputFile,
-            //        caption: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
-            //        parseMode: ParseMode.Html,
-            //        replyMarkup: keyboard
-            //    );
-            //}
-            await _botClient.SendTextMessageAsync(
-                chatId: chatId,
-                 text: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
-                parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
-                replyMarkup: keyboard
-            );
+            new[] { applyButton },
+            new[] { backButton }
+        });
+
+        if (!string.IsNullOrEmpty(vacancy.ImagePath) && System.IO.File.Exists(vacancy.ImagePath))
+        {
+            using (var stream = System.IO.File.OpenRead(vacancy.ImagePath))
+            {
+                var inputFiles = new InputFileStream(stream, Path.GetFileName(vacancy.ImagePath));
+
+                await _botClient.SendPhotoAsync(
+                    chatId: chatId,
+                    photo: inputFiles,
+                    caption: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
+                    parseMode: ParseMode.Html,
+                    replyMarkup: keyboard
+                );
+            }
         }
         else
         {
             await _botClient.SendTextMessageAsync(
                 chatId: chatId,
                 text: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
-                parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                parseMode: ParseMode.Html,
                 replyMarkup: keyboard
             );
         }

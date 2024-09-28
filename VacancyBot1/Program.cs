@@ -9,33 +9,26 @@ class Program
 {
     static void Main(string[] args)
     {
-        // Build service collection
         var serviceCollection = new ServiceCollection();
         ConfigureServices(serviceCollection);
 
-        // Create service provider
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        // Run bot
         serviceProvider.GetService<Bot>().RunAsync().GetAwaiter().GetResult();
     }
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // Add DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite("Data Source=vacancybot.db"));
 
-        // Add Telegram Bot client
         services.AddSingleton<ITelegramBotClient>(new TelegramBotClient("7386705040:AAHQN9Xsa1n6Vq-w58dDRbkMntdpFhIqp6M"));
 
-        // Add services
         services.AddTransient<VacancyService>();
         services.AddTransient<CandidateService>();
         services.AddTransient<AdminService>();
         services.AddTransient<IUpdateHandler, UpdateHandler>();
 
-        // Add Bot
         services.AddSingleton<Bot>();
     }
 }

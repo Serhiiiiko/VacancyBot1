@@ -18,6 +18,8 @@ public class Candidate
 
     public string WorkExperience { get; set; } = default!;
 
+    public string? CVFilePath { get; set; }
+
     public int VacancyId { get; set; }
 
     public Vacancy Vacancy { get; set; } = default!;
