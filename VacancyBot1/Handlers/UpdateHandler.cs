@@ -58,12 +58,20 @@ namespace VacancyBot1.Handlers
             }
             else
             {
+<<<<<<< HEAD
+=======
+                // Check if the user is an admin in the middle of a command
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 if (_adminService.IsAdmin(message.From.Id))
                 {
                     await _adminService.HandleAdminInputAsync(message);
                 }
                 else
                 {
+<<<<<<< HEAD
+=======
+                    // Check if the user is in the middle of an application
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                     await _candidateService.HandleApplicationAsync(message);
                 }
             }

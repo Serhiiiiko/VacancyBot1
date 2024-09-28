@@ -75,6 +75,10 @@ public class CandidateService
             case ApplicationStep.WorkExperience:
                 state.WorkExperience = message.Text;
 
+<<<<<<< HEAD
+=======
+                // Save candidate to database
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 var candidate = new Candidate
                 {
                     TelegramId = message.From.Id,
@@ -88,6 +92,10 @@ public class CandidateService
                 _dbContext.Candidates.Add(candidate);
                 await _dbContext.SaveChangesAsync();
 
+<<<<<<< HEAD
+=======
+                // Remove state
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 _candidateStates.TryRemove(message.From.Id, out _);
 
                 await _botClient.SendTextMessageAsync(
@@ -95,6 +103,10 @@ public class CandidateService
                     text: "Ваша заявка успішно надіслана!"
                 );
 
+<<<<<<< HEAD
+=======
+                // Optionally, return to main menu
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 break;
         }
     }

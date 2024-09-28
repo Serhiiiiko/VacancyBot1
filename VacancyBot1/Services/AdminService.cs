@@ -16,6 +16,10 @@ namespace VacancyBot1.Services
         private readonly ITelegramBotClient _botClient;
         private readonly ApplicationDbContext _dbContext;
 
+<<<<<<< HEAD
+=======
+        // State management for admin commands
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
         private readonly ConcurrentDictionary<long, AdminState> _adminStates = new ConcurrentDictionary<long, AdminState>();
 
         public AdminService(ITelegramBotClient botClient, ApplicationDbContext dbContext)
@@ -31,7 +35,11 @@ namespace VacancyBot1.Services
 
         public async Task AddVacancyAsync(Message message)
         {
+<<<<<<< HEAD
             if (!IsAdmin(message.Chat.Id))
+=======
+            if (IsAdmin(message.Chat.Id))
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
             {
                 await _botClient.SendTextMessageAsync(
                     chatId: message.Chat.Id,
@@ -65,6 +73,10 @@ namespace VacancyBot1.Services
                 return;
             }
 
+<<<<<<< HEAD
+=======
+            // Show list of vacancies to edit
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
             var vacancies = _dbContext.Vacancies.ToList();
 
             if (!vacancies.Any())
@@ -100,6 +112,10 @@ namespace VacancyBot1.Services
                 return;
             }
 
+<<<<<<< HEAD
+=======
+            // Show list of vacancies to delete
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
             var vacancies = _dbContext.Vacancies.ToList();
 
             if (!vacancies.Any())
@@ -124,11 +140,14 @@ namespace VacancyBot1.Services
             );
         }
 
+<<<<<<< HEAD
         internal async Task ViewCandidatesAsync(Message message)
         {
             throw new NotImplementedException();
         }
 
+=======
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
         public async Task HandleAdminInputAsync(Message message)
         {
             if (!_adminStates.TryGetValue(message.From.Id, out var state))
@@ -142,6 +161,10 @@ namespace VacancyBot1.Services
                 case AdminCommand.EditVacancy:
                     await HandleEditVacancyAsync(message, state);
                     break;
+<<<<<<< HEAD
+=======
+                    // Handle other commands if necessary
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
             }
         }
 
@@ -170,6 +193,10 @@ namespace VacancyBot1.Services
             {
                 int vacancyId = int.Parse(callbackQuery.Data.Split('_')[1]);
 
+<<<<<<< HEAD
+=======
+                // Delete the vacancy
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                 var vacancy = _dbContext.Vacancies.Find(vacancyId);
                 if (vacancy != null)
                 {
@@ -216,7 +243,11 @@ namespace VacancyBot1.Services
                     state.Step = AdminStep.Image;
                     await _botClient.SendTextMessageAsync(
                         chatId: message.Chat.Id,
+<<<<<<< HEAD
                         text: "Надішліть зображення вакансії (або надішліть skip, щоб пропустити):"
+=======
+                        text: "Надішліть зображення вакансії (або надішліть /skip, щоб пропустити):"
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                     );
                     break;
                 case AdminStep.Image:
@@ -231,7 +262,11 @@ namespace VacancyBot1.Services
                             state.Image = stream.ToArray();
                         }
                     }
+<<<<<<< HEAD
                     else if (message.Text == "skip")
+=======
+                    else if (message.Text == "/skip")
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                     {
                         state.Image = null;
                     }
@@ -239,11 +274,19 @@ namespace VacancyBot1.Services
                     {
                         await _botClient.SendTextMessageAsync(
                             chatId: message.Chat.Id,
+<<<<<<< HEAD
                             text: "Надішліть зображення або введіть skip, щоб пропустити цей крок."
+=======
+                            text: "Надішліть зображення або введіть /skip, щоб пропустити цей крок."
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                         );
                         return;
                     }
 
+<<<<<<< HEAD
+=======
+                    // Save vacancy to database
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
                     var vacancy = new Vacancy
                     {
                         Title = state.Title,
@@ -340,14 +383,28 @@ namespace VacancyBot1.Services
             }
         }
 
+<<<<<<< HEAD
+=======
+        internal async Task ViewCandidatesAsync(Message message)
+        {
+            throw new NotImplementedException();
+        }
+
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
         private class AdminState
         {
             public AdminCommand Command { get; set; }
             public AdminStep Step { get; set; }
             public int VacancyId { get; set; }
+<<<<<<< HEAD
             public string Title { get; set; } = default!;
             public string Description { get; set; } = default!;
             public string Requirements { get; set; } = default!;
+=======
+            public string Title { get; set; }
+            public string Description { get; set; }
+            public string Requirements { get; set; }
+>>>>>>> 507a0380ee99a877d10d8417417469b5c62df161
             public byte[] Image { get; set; }
         }
 
