@@ -9,16 +9,25 @@ class Program
 {
     static void Main(string[] args)
     {
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables();
+
+        var configuration = builder.Build();
+
         var serviceCollection = new ServiceCollection();
-        ConfigureServices(serviceCollection);
+        ConfigureServices(serviceCollection, configuration);
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
         serviceProvider.GetService<Bot>().RunAsync().GetAwaiter().GetResult();
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton(configuration);
+
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite("Data Source=vacancybot.db"));
 
@@ -27,6 +36,7 @@ class Program
         services.AddTransient<VacancyService>();
         services.AddTransient<CandidateService>();
         services.AddTransient<AdminService>();
+        services.AddScoped<IEmailService, EmailService>();
         services.AddTransient<IUpdateHandler, UpdateHandler>();
 
         services.AddSingleton<Bot>();
@@ -47,7 +57,6 @@ public class Bot
     public async Task RunAsync()
     {
         var cts = new CancellationTokenSource();
-        // Start receiving updates
 
         _botClient.StartReceiving(
             _updateHandler,

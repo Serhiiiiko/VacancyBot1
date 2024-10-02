@@ -11,14 +11,19 @@ public class CandidateService
 {
     private readonly ITelegramBotClient _botClient;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IEmailService _emailService;
+    private readonly IConfiguration _configuration;
+    private readonly AdminService _adminService;
 
-    // State management
     private readonly ConcurrentDictionary<long, CandidateState> _candidateStates = new ConcurrentDictionary<long, CandidateState>();
 
-    public CandidateService(ITelegramBotClient botClient, ApplicationDbContext dbContext)
+    public CandidateService(ITelegramBotClient botClient, ApplicationDbContext dbContext, IEmailService emailService, IConfiguration configuration, AdminService adminService)
     {
         _botClient = botClient;
         _dbContext = dbContext;
+        _emailService = emailService;
+        _configuration = configuration;
+        _adminService = adminService;
     }
 
     public async Task StartApplicationAsync(User user, int vacancyId)
@@ -74,6 +79,18 @@ public class CandidateService
 
             case ApplicationStep.WorkExperience:
                 state.WorkExperience = message.Text;
+                state.Step = ApplicationStep.Email;
+                await _botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: "Введіть вашу електронну пошту (необов'язково). Якщо не бажаєте вказувати, напишіть 'ні':"
+                );
+                break;
+
+            case ApplicationStep.Email:
+                if (!string.Equals(message.Text.Trim(), "ні", StringComparison.OrdinalIgnoreCase))
+                {
+                    state.Email = message.Text;
+                }
                 state.Step = ApplicationStep.CVFile;
                 await _botClient.SendTextMessageAsync(
                     chatId: message.Chat.Id,
@@ -138,6 +155,7 @@ public class CandidateService
                     FullName = state.FullName,
                     PhoneNumber = state.PhoneNumber,
                     WorkExperience = state.WorkExperience,
+                    Email = state.Email,
                     CVFilePath = state.CVFilePath,
                     VacancyId = state.VacancyId
                 };
@@ -151,10 +169,63 @@ public class CandidateService
                     chatId: message.Chat.Id,
                     text: "Ваша заявка успішно надіслана!"
                 );
+
+                await NotifyAdminsAsync(candidate);
+
                 break;
 
         }
     }
+
+    private async Task NotifyAdminsAsync(Candidate candidate)
+    {
+
+        //// Load the vacancy details
+        //await _dbContext.Entry(candidate).Reference(c => c.Vacancy).LoadAsync();
+
+        //// Get admin Telegram IDs from database
+        //var adminTelegramIds = _dbContext.Admins.Select(a => a.TelegramId).ToList();
+
+        //// Get admin emails from configuration
+        //var adminEmails = _configuration.GetSection("AdminEmails").Get<List<string>>();
+
+        await _dbContext.Entry(candidate).Reference(c => c.Vacancy).LoadAsync();
+
+        var admins = _dbContext.Admins.ToList();
+
+        string candidateInfo = $"Новий кандидат на вакансію: {candidate.Vacancy.Title}\n" +
+                               $"Ім'я: {candidate.FullName}\n" +
+                               $"Телефон: {candidate.PhoneNumber}\n" +
+                               $"Email: {candidate.Email ?? "N/A"}\n" +
+                               $"Досвід роботи: {candidate.WorkExperience}\n" +
+                               $"Telegram: @{candidate.TelegramUsername ?? "N/A"}\n";
+
+        if (!string.IsNullOrEmpty(candidate.CVFilePath))
+        {
+            candidateInfo += $"Резюме: {candidate.CVFilePath}\n";
+        }
+
+        foreach (var admin in admins)
+        {
+            await _botClient.SendTextMessageAsync(
+                chatId: admin.TelegramId,
+                text: candidateInfo
+            );
+        }
+
+        foreach (var admin in admins.Where(a => !string.IsNullOrEmpty(a.Email)))
+        {
+            var email = new Email
+            {
+                To = admin.Email,
+                Subject = "Новий кандидат на вакансію",
+                Body = candidateInfo
+            };
+
+            await _emailService.SendEmailAsync(email);
+        }
+    }
+
 
     private bool IsValidPhoneNumber(string phoneNumber)
     {
@@ -169,6 +240,7 @@ public class CandidateService
         public string FullName { get; set; } = default!;
         public string PhoneNumber { get; set; } = default!;
         public string WorkExperience { get; set; } = default!;
+        public string? Email { get; set; }
         public string? CVFilePath { get; set; }
 
     }
@@ -178,6 +250,7 @@ public class CandidateService
         FullName,
         PhoneNumber,
         WorkExperience,
+        Email,
         CVFile
     }
 

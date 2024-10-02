@@ -1,13 +1,10 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using VacancyBot1.Data;
 using VacancyBot1.Models;
 using System.Collections.Concurrent;
 using Telegram.Bot.Types.ReplyMarkups;
-using System.Threading;
-using System;
+
 
 namespace VacancyBot1.Services
 {
@@ -16,7 +13,6 @@ namespace VacancyBot1.Services
         private readonly ITelegramBotClient _botClient;
         private readonly ApplicationDbContext _dbContext;
 
-        // State management for admin commands
         private readonly ConcurrentDictionary<long, AdminState> _adminStates = new ConcurrentDictionary<long, AdminState>();
 
         public AdminService(ITelegramBotClient botClient, ApplicationDbContext dbContext)
@@ -301,7 +297,6 @@ namespace VacancyBot1.Services
                         return;
                     }
 
-                    // Збереження вакансії
                     var vacancy = new Vacancy
                     {
                         Title = state.Title,
@@ -383,7 +378,6 @@ namespace VacancyBot1.Services
                     }
                     else if (message.Text?.ToLower() == "skip")
                     {
-                        // Залишаємо поточне зображення без змін або встановлюємо в null
                         vacancy.ImagePath = null;
                     }
                     else
@@ -429,6 +423,8 @@ namespace VacancyBot1.Services
                     text: $"Ім'я: {candidate.FullName}\n" +
                           $"Телефон: {candidate.PhoneNumber}\n" +
                           $"Досвід роботи: {candidate.WorkExperience}\n" +
+                          $"Пошта: {candidate.Email ?? "N/A"}\n" +
+                          $"Резюме: {candidate.CVFilePath ?? "N/A"}\n" +
                           $"Telegram: @{candidate.TelegramUsername ?? "N/A"}"
                 );
             }

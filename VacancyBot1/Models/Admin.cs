@@ -12,4 +12,6 @@ public class Admin
     public string TelegramUsername { get; set; } = default!;
 
     public bool IsSuperAdmin { get; set; } = false;
+
+    public string Email { get; set; } = default!;
 }

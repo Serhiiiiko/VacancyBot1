@@ -21,6 +21,7 @@ public class Candidate
     public string? CVFilePath { get; set; }
 
     public int VacancyId { get; set; }
+    public string? Email { get; set; }
 
     public Vacancy Vacancy { get; set; } = default!;
 
