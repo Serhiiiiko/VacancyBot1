@@ -418,22 +418,82 @@ namespace VacancyBot1.Services
 
             foreach (var candidate in candidates)
             {
+                string candidateInfo = $"Ім'я: {candidate.FullName}\n" +
+                                       $"Телефон: {candidate.PhoneNumber}\n" +
+                                       $"Email: {candidate.Email ?? "N/A"}\n" +
+                                       $"Досвід роботи: {candidate.WorkExperience}\n" +
+                                       $"Telegram: @{candidate.TelegramUsername ?? "N/A"}";
+
                 await _botClient.SendTextMessageAsync(
                     chatId: message.Chat.Id,
-                    text: $"Ім'я: {candidate.FullName}\n" +
-                          $"Телефон: {candidate.PhoneNumber}\n" +
-                          $"Досвід роботи: {candidate.WorkExperience}\n" +
-                          $"Пошта: {candidate.Email ?? "N/A"}\n" +
-                          $"Резюме: {candidate.CVFilePath ?? "N/A"}\n" +
-                          $"Telegram: @{candidate.TelegramUsername ?? "N/A"}"
+                    text: candidateInfo
                 );
+
+                if (!string.IsNullOrEmpty(candidate.CVFilePath) && System.IO.File.Exists(candidate.CVFilePath))
+                {
+                    try
+                    {
+                        using (var stream = System.IO.File.OpenRead(candidate.CVFilePath))
+                        {
+                            var extension = Path.GetExtension(candidate.CVFilePath).ToLower();
+
+                            if (extension == ".jpg" || extension == ".jpeg" || extension == ".png")
+                            {
+                                await _botClient.SendPhotoAsync(
+                                    chatId: message.Chat.Id,
+                                    photo: new InputFileStream(System.IO.File.OpenRead(candidate.CVFilePath)),
+                                    caption: $"Резюме кандидата {candidate.FullName}"
+                                );
+                            }
+                            else
+                            {
+                                await _botClient.SendDocumentAsync(
+                                    chatId: message.Chat.Id,
+                                    document: new InputFileStream(System.IO.File.OpenRead(candidate.CVFilePath)),
+                                    caption: $"Резюме кандидата {candidate.FullName}"
+                                );
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await _botClient.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: $"Не вдалося завантажити резюме кандидата: {ex.Message}"
+                        );
+                    }
+                }
+                else
+                {
+                    await _botClient.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: "Кандидат не надав резюме."
+                    );
+                }
             }
         }
 
 
         private async Task HandleDeleteVacancyAsync(Message message, AdminState state)
         {
-            throw new NotImplementedException();
+            var vacancy = _dbContext.Vacancies.Find(state.VacancyId);
+            if (vacancy == null)
+            {
+                await _botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: "Вакансію не знайдено."
+                );
+                _adminStates.TryRemove(message.From.Id, out _);
+                return;
+            }
+
+            _dbContext.Vacancies.Remove(vacancy);
+            _adminStates.TryRemove(message.From.Id, out _);
+
+            await _botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: "Вакансію видалено."
+            );
         }
 
         private class AdminState

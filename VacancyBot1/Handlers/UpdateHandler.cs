@@ -3,6 +3,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot;
 using VacancyBot1.Services;
 using Telegram.Bot.Polling;
+using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace VacancyBot1.Handlers
@@ -58,23 +59,55 @@ namespace VacancyBot1.Handlers
             }
             else
             {
-                if (_adminService.IsAdmin(message.From.Id))
+                switch (message.Text)
                 {
-                    await _adminService.HandleAdminInputAsync(message);
-                }
-                else
-                {
-                    await _candidateService.HandleApplicationAsync(message);
+                    case "Переглянути вакансії":
+                        await _vacancyService.ShowVacanciesAsync(message.Chat.Id);
+                        break;
+                    case "/addvacancy":
+                    case "/editvacancy":
+                    case "/deletevacancy":
+                    case "/viewcandidates":
+                        if (_adminService.IsAdmin(message.From.Id))
+                        {
+                            await HandleCommandAsync(message);
+                        }
+                        else
+                        {
+                            await _botClient.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: "У вас немає прав адміністратора."
+                            );
+                        }
+                        break;
+                    default:
+                        if (_adminService.IsAdmin(message.From.Id))
+                        {
+                            await _adminService.HandleAdminInputAsync(message);
+                        }
+                        else
+                        {
+                            await _candidateService.HandleApplicationAsync(message);
+                        }
+                        break;
                 }
             }
         }
+
 
         private async Task HandleCommandAsync(Message message)
         {
             switch (message.Text.Split(' ')[0])
             {
                 case "/start":
-                    await _vacancyService.ShowVacanciesAsync(message.Chat.Id);
+                    if (_adminService.IsAdmin(message.From.Id))
+                    {
+                        await ShowAdminMenuAsync(message.Chat.Id);
+                    }
+                    else
+                    {
+                        await ShowUserMenuAsync(message.Chat.Id);
+                    }
                     break;
                 case "/addvacancy":
                     await _adminService.AddVacancyAsync(message);
@@ -106,6 +139,18 @@ namespace VacancyBot1.Handlers
             }
             if (callbackQuery.Data == "back_to_main")
             {
+                if (_adminService.IsAdmin(callbackQuery.From.Id))
+                {
+                    await ShowAdminMenuAsync(callbackQuery.Message.Chat.Id);
+                }
+                else
+                {
+                    await ShowUserMenuAsync(callbackQuery.Message.Chat.Id);
+                }
+                return;
+            }
+            if (callbackQuery.Data == "back_to_vacancies")
+            {
                 await _vacancyService.ShowVacanciesAsync(callbackQuery.Message.Chat.Id);
                 return;
             }
@@ -120,5 +165,43 @@ namespace VacancyBot1.Handlers
                 await _candidateService.StartApplicationAsync(callbackQuery.From, vacancyId);
             }
         }
+
+
+        private async Task ShowAdminMenuAsync(long chatId)
+        {
+            var keyboard = new ReplyKeyboardMarkup(new[]
+            {
+                new KeyboardButton[] { "/addvacancy", "/editvacancy" },
+                new KeyboardButton[] { "/deletevacancy", "/viewcandidates" },
+                new KeyboardButton[] { "Переглянути вакансії" }
+            })
+            {
+                ResizeKeyboard = true
+            };
+
+            await _botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Вітаю, адміністраторе! Оберіть команду з меню:",
+                replyMarkup: keyboard
+            );
+        }
+
+        private async Task ShowUserMenuAsync(long chatId)
+        {
+            var keyboard = new ReplyKeyboardMarkup(new[]
+            {
+                new KeyboardButton[] { "Переглянути вакансії" }
+            })
+            {
+                ResizeKeyboard = true
+            };
+
+            await _botClient.SendTextMessageAsync(
+                chatId: chatId,
+                text: "Вітаю! Оберіть дію з меню:",
+                replyMarkup: keyboard
+            );
+        }
+
     }
 }

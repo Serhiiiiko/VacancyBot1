@@ -147,7 +147,6 @@ public class CandidateService
                     return;
                 }
 
-                // Збереження кандидата
                 var candidate = new Candidate
                 {
                     TelegramId = message.From.Id,
@@ -179,16 +178,6 @@ public class CandidateService
 
     private async Task NotifyAdminsAsync(Candidate candidate)
     {
-
-        //// Load the vacancy details
-        //await _dbContext.Entry(candidate).Reference(c => c.Vacancy).LoadAsync();
-
-        //// Get admin Telegram IDs from database
-        //var adminTelegramIds = _dbContext.Admins.Select(a => a.TelegramId).ToList();
-
-        //// Get admin emails from configuration
-        //var adminEmails = _configuration.GetSection("AdminEmails").Get<List<string>>();
-
         await _dbContext.Entry(candidate).Reference(c => c.Vacancy).LoadAsync();
 
         var admins = _dbContext.Admins.ToList();
@@ -200,17 +189,52 @@ public class CandidateService
                                $"Досвід роботи: {candidate.WorkExperience}\n" +
                                $"Telegram: @{candidate.TelegramUsername ?? "N/A"}\n";
 
-        if (!string.IsNullOrEmpty(candidate.CVFilePath))
-        {
-            candidateInfo += $"Резюме: {candidate.CVFilePath}\n";
-        }
-
         foreach (var admin in admins)
         {
             await _botClient.SendTextMessageAsync(
                 chatId: admin.TelegramId,
                 text: candidateInfo
             );
+
+            if (!string.IsNullOrEmpty(candidate.CVFilePath) && System.IO.File.Exists(candidate.CVFilePath))
+            {
+                try
+                {
+                    var extension = Path.GetExtension(candidate.CVFilePath).ToLower();
+
+                    if (extension == ".jpg" || extension == ".jpeg" || extension == ".png")
+                    {
+                        await _botClient.SendPhotoAsync(
+                            chatId: admin.TelegramId,
+                            photo: new InputFileStream(System.IO.File.OpenRead(candidate.CVFilePath)),
+                            caption: "Резюме кандидата"
+                        );
+                    }
+                    else
+                    {
+                        await _botClient.SendDocumentAsync(
+                            chatId: admin.TelegramId,
+                            document: new InputFileStream(System.IO.File.OpenRead(candidate.CVFilePath)),
+                            caption: "Резюме кандидата"
+                        );
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при отправке резюме в Telegram: {ex.Message}");
+                    await _botClient.SendTextMessageAsync(
+                        chatId: admin.TelegramId,
+                        text: "Не вдалося відправити резюме кандидата."
+                    );
+                }
+            }
+            else
+            {
+                await _botClient.SendTextMessageAsync(
+                    chatId: admin.TelegramId,
+                    text: "Кандидат не надав резюме."
+                );
+            }
         }
 
         foreach (var admin in admins.Where(a => !string.IsNullOrEmpty(a.Email)))
@@ -219,13 +243,20 @@ public class CandidateService
             {
                 To = admin.Email,
                 Subject = "Новий кандидат на вакансію",
-                Body = candidateInfo
+                Body = candidateInfo,
+                AttachmentPath = candidate.CVFilePath
             };
 
-            await _emailService.SendEmailAsync(email);
+            try
+            {
+                await _emailService.SendEmailAsync(email);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при отправке email: {ex.Message}");
+            }
         }
     }
-
 
     private bool IsValidPhoneNumber(string phoneNumber)
     {

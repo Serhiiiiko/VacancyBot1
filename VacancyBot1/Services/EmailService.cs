@@ -23,7 +23,19 @@ public class EmailService : IEmailService
         emailMessage.From.Add(new MailboxAddress("", _emailSettings.EmailUsername));
         emailMessage.To.Add(MailboxAddress.Parse(email.To));
         emailMessage.Subject = email.Subject;
-        emailMessage.Body = new TextPart(TextFormat.Plain) { Text = email.Body };
+
+        var bodyBuilder = new BodyBuilder
+        {
+            TextBody = email.Body
+        };
+
+        // Добавляем вложение, если оно есть
+        if (!string.IsNullOrEmpty(email.AttachmentPath) && File.Exists(email.AttachmentPath))
+        {
+            bodyBuilder.Attachments.Add(email.AttachmentPath);
+        }
+
+        emailMessage.Body = bodyBuilder.ToMessageBody();
 
         using var smtpClient = new SmtpClient();
         await smtpClient.ConnectAsync(_emailSettings.EmailHost, _emailSettings.EmailPort, SecureSocketOptions.StartTls);
@@ -31,6 +43,7 @@ public class EmailService : IEmailService
         await smtpClient.SendAsync(emailMessage);
         await smtpClient.DisconnectAsync(true);
     }
+
 }
 
 public class EmailSettings

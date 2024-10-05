@@ -57,13 +57,15 @@ public class VacancyService
         }
 
         var applyButton = InlineKeyboardButton.WithCallbackData("Подати заявку", $"apply_{vacancy.Id}");
-        var backButton = InlineKeyboardButton.WithCallbackData("⬅️ Повернутися", "back_to_main");
+        var backButton = InlineKeyboardButton.WithCallbackData("⬅️ Назад до вакансій", "back_to_vacancies");
+        var mainMenuButton = InlineKeyboardButton.WithCallbackData("🏠 Головне меню", "back_to_main");
 
         var keyboard = new InlineKeyboardMarkup(new[]
         {
             new[] { applyButton },
             new[] { backButton }
         });
+
 
         if (!string.IsNullOrEmpty(vacancy.ImagePath) && System.IO.File.Exists(vacancy.ImagePath))
         {
@@ -74,7 +76,7 @@ public class VacancyService
                 await _botClient.SendPhotoAsync(
                     chatId: chatId,
                     photo: inputFiles,
-                    caption: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
+                    caption: $"<b>{vacancy.Title}</b>\n\nОпис вакансії:\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
                     parseMode: ParseMode.Html,
                     replyMarkup: keyboard
                 );
@@ -84,7 +86,7 @@ public class VacancyService
         {
             await _botClient.SendTextMessageAsync(
                 chatId: chatId,
-                text: $"<b>{vacancy.Title}</b>\n\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
+                text: $"<b>{vacancy.Title}</b>\n\nОпис вакансії:\n{vacancy.Description}\n\nВимоги:\n{vacancy.Requirements}",
                 parseMode: ParseMode.Html,
                 replyMarkup: keyboard
             );
