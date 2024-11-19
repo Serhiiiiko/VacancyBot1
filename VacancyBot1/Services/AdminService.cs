@@ -62,7 +62,6 @@ namespace VacancyBot1.Services
                 return;
             }
 
-            // Show list of vacancies to edit
             var vacancies = _dbContext.Vacancies.ToList();
 
             if (!vacancies.Any())
