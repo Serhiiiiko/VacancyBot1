@@ -258,7 +258,7 @@ public class CandidateService
         }
     }
 
-    private bool IsValidPhoneNumber(string phoneNumber)
+    public bool IsValidPhoneNumber(string phoneNumber)
     {
         var regex = new Regex(@"^\+380\d{9}$");
         return regex.IsMatch(phoneNumber);

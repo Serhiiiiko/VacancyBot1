@@ -74,10 +74,11 @@ namespace VacancyBot1.Services
             }
 
             var buttons = vacancies.Select(v =>
-                InlineKeyboardButton.WithCallbackData(v.Title, $"editvacancy_{v.Id}")
-            );
+                new[] { InlineKeyboardButton.WithCallbackData(v.Title, $"editvacancy_{v.Id}") }
+            ).ToArray();
 
             var keyboard = new InlineKeyboardMarkup(buttons);
+
 
             await _botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
@@ -109,8 +110,8 @@ namespace VacancyBot1.Services
             }
 
             var buttons = vacancies.Select(v =>
-                InlineKeyboardButton.WithCallbackData(v.Title, $"deletevacancy_{v.Id}")
-            );
+                new[] { InlineKeyboardButton.WithCallbackData(v.Title, $"deletevacancy_{v.Id}") }
+            ).ToArray();
 
             var keyboard = new InlineKeyboardMarkup(buttons);
 
