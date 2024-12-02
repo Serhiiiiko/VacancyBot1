@@ -1,6 +1,7 @@
 name: SonarQube Analysis
 
 on:
+  workflow_dispatch: # This allows the workflow to be run manually
   push:
     branches:
       - main
