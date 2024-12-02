@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.0'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Run LightBDD tests
+      run: dotnet test VacancyBot1.IntegrationTests/VacancyBot1.IntegrationTests.csproj --logger trx
+
+    - name: Generate LightBDD report
+      run: |
+        dotnet tool install --global LightBDD.CommandLine.Cli
+        lightbdd report build "VacancyBot1.IntegrationTests/TestResults/TestResult.trx" --output "VacancyBot1.IntegrationTests/TestResults/LivingDoc.html"
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: TestResults
+        path: |
+          VacancyBot1.IntegrationTests/TestResults/TestResult.trx
+          VacancyBot1.IntegrationTests/TestResults/LivingDoc.html
