@@ -2,7 +2,6 @@
 using VacancyBot1.Models;
 using MailKit.Net.Smtp;
 using MailKit.Security;
-using MimeKit.Text;
 
 namespace VacancyBot1.Services;
 
@@ -17,22 +16,21 @@ public class EmailService : IEmailService
         _emailSettings = _configuration.GetSection("EmailSettings").Get<EmailSettings>();
     }
 
-    public async Task SendEmailAsync(Email email)
+    public async Task SendEmailAsync(Email request)
     {
         var emailMessage = new MimeMessage();
         emailMessage.From.Add(new MailboxAddress("", _emailSettings.EmailUsername));
-        emailMessage.To.Add(MailboxAddress.Parse(email.To));
-        emailMessage.Subject = email.Subject;
+        emailMessage.To.Add(MailboxAddress.Parse(request.To));
+        emailMessage.Subject = request.Subject;
 
         var bodyBuilder = new BodyBuilder
         {
-            TextBody = email.Body
+            TextBody = request.Body
         };
 
-        // Добавляем вложение, если оно есть
-        if (!string.IsNullOrEmpty(email.AttachmentPath) && File.Exists(email.AttachmentPath))
+        if (!string.IsNullOrEmpty(request.AttachmentPath) && File.Exists(request.AttachmentPath))
         {
-            bodyBuilder.Attachments.Add(email.AttachmentPath);
+            await bodyBuilder.Attachments.AddAsync(request.AttachmentPath);
         }
 
         emailMessage.Body = bodyBuilder.ToMessageBody();

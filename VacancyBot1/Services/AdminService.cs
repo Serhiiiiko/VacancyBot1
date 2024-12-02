@@ -215,7 +215,7 @@ namespace VacancyBot1.Services
                 int vacancyId = int.Parse(callbackQuery.Data.Split('_')[1]);
 
                 // Delete the vacancy
-                var vacancy = _dbContext.Vacancies.Find(vacancyId);
+                var vacancy = await _dbContext.Vacancies.FindAsync(vacancyId);
                 if (vacancy != null)
                 {
                     _dbContext.Vacancies.Remove(vacancy);
@@ -320,7 +320,7 @@ namespace VacancyBot1.Services
 
         private async Task HandleEditVacancyAsync(Message message, AdminState state)
         {
-            var vacancy = _dbContext.Vacancies.Find(state.VacancyId);
+            var vacancy = await _dbContext.Vacancies.FindAsync(state.VacancyId);
             if (vacancy == null)
             {
                 await _botClient.SendTextMessageAsync(
@@ -476,7 +476,7 @@ namespace VacancyBot1.Services
 
         private async Task HandleDeleteVacancyAsync(Message message, AdminState state)
         {
-            var vacancy = _dbContext.Vacancies.Find(state.VacancyId);
+            var vacancy = await _dbContext.Vacancies.FindAsync(state.VacancyId);
             if (vacancy == null)
             {
                 await _botClient.SendTextMessageAsync(
